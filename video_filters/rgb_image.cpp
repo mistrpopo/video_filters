@@ -1,72 +1,67 @@
 #include "rgb_image.h"
 #include <stdlib.h>
-#if INVALID_ACCESS_POLICY == THROW
 #include <exception>
-#endif
 
-#if INVALID_ACCESS_POLICY == FALL_IN_SINK
-//all invalid pixel access operations will fall into this
+//all "fall-in-sink" invalid pixel access operations will end up writing in this pixel
 static rgb_pixel out_of_bounds;
-#endif
-	
-rgb_image::rgb_image()
-	:width(0), height(0), data(nullptr)
-{
 
+template<>
+const rgb_line_<FALL_IN_SINK> rgb_image_<FALL_IN_SINK>::operator[](int i) const
+{
+	if (data && i >= 0 && i < height) { return rgb_line_<FALL_IN_SINK>(width, &data[i * width]); }
+	return rgb_line_<FALL_IN_SINK>();
 }
 
-rgb_image::rgb_image(int w, int h, bool allocate_in_ctor /*= true*/)
-	:width(w), height(h), data(nullptr)
+template<>
+const rgb_line_<THROW> rgb_image_<THROW>::operator[](int i) const
 {
-	if (allocate_in_ctor) allocate();
-}
-
-
-rgb_image::~rgb_image()
-{
-	if (data) free(data);
-}
-
-rgb_line::rgb_line(int w, rgb_pixel* d)
-	:width(w), data(d)
-{
-}
-
-void rgb_image::allocate()
-{
-	if (!width || !height) return;
-	data = static_cast<rgb_pixel*>(calloc(width * height, sizeof(rgb_pixel)));
-}
-
-rgb_line rgb_image::operator[](int i)
-{
-#if INVALID_ACCESS_POLICY == FALL_IN_SINK
-	return rgb_line(width,data && i >= 0 && i < height ? &data[i * width] : nullptr);
-#elif INVALID_ACCESS_POLICY == THROW
-	if(data && i >= 0 && i < height)
-		return rgb_line(width, &data[i * width]);
+	if (data && i >= 0 && i < height) { return rgb_line_<THROW>(width, &data[i * width]); }
 	throw std::exception("invalid access");
-#endif
 }
 
-rgb_pixel& rgb_image::operator()(int pixel)
+template<>
+const rgb_line_<UNCHECKED> rgb_image_<UNCHECKED>::operator[](int i) const
 {
-#if INVALID_ACCESS_POLICY == FALL_IN_SINK
-	return reinterpret_cast<rgb_pixel&>(data && pixel >= 0 && pixel < width * height ? data[pixel] : out_of_bounds);
-#elif INVALID_ACCESS_POLICY == THROW
-	if (data && pixel >= 0 && pixel < width * height)
-		return reinterpret_cast<rgb_pixel&>(data[pixel]);
-	throw std::exception("invalid access");
-#endif
+	return rgb_line_<UNCHECKED>(width, &data[i * width]);
 }
 
-rgb_pixel& rgb_line::operator[](int j)
+template<>
+const rgb_pixel& rgb_image_<FALL_IN_SINK>::operator()(int pixel) const
 {
-#if INVALID_ACCESS_POLICY == FALL_IN_SINK
-	return reinterpret_cast<rgb_pixel&>(data && j >= 0 && j < width ? data[j] : out_of_bounds);
-#elif INVALID_ACCESS_POLICY == THROW
-	if (data && j >= 0 && j < width)
-		return reinterpret_cast<rgb_pixel&>(data[j]);
+	if (data && pixel >= 0 && pixel < width * height) { return data[pixel]; }
+	return out_of_bounds;
+}
+
+
+template<>
+const rgb_pixel& rgb_image_<THROW>::operator()(int pixel) const
+{
+	if (data && pixel >= 0 && pixel < width * height) { return data[pixel]; }
 	throw std::exception("invalid access");
-#endif
+}
+
+template<>
+const rgb_pixel& rgb_image_<UNCHECKED>::operator()(int pixel) const
+{
+	return data[pixel];
+}
+
+template<>
+const rgb_pixel& rgb_line_<FALL_IN_SINK>::operator[](int j) const
+{
+	if (data && j >= 0 && j < width) { return data[j]; }
+	return out_of_bounds;
+}
+
+template<>
+const rgb_pixel& rgb_line_<THROW>::operator[](int j) const
+{
+	if (data && j >= 0 && j < width) { return data[j]; }
+	throw std::exception("invalid access");
+}
+
+template<>
+const rgb_pixel& rgb_line_<UNCHECKED>::operator[](int j) const
+{
+	return data[j];
 }

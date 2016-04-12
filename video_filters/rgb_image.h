@@ -1,15 +1,17 @@
 #pragma once
 #include <stdint.h>
 
-#define FALL_IN_SINK 1
-#define THROW 2
-#define UNCHECKED 3
+// Disclaimer: This is my little C++ playground
+// If I were you, I would probably not use rgb_image for practical purposes
+ 
 
-#define INVALID_ACCESS_POLICY THROW
-
-
-
-
+enum INVALID_ACCESS_POLICY
+{
+	FALL_IN_SINK = 1,
+	THROW = 2,
+	UNCHECKED = 3,
+	DEFAULT = FALL_IN_SINK
+};
 
 struct rgb_pixel
 {
@@ -18,25 +20,35 @@ struct rgb_pixel
 	int32_t b;
 };
 
-struct rgb_line
+template<INVALID_ACCESS_POLICY policy>
+struct rgb_line_
 {
-	rgb_line(int width, rgb_pixel* data);
+	rgb_line_();
+	rgb_line_(int width, rgb_pixel* data);
+
+	const rgb_pixel& operator[](int j) const;
 	rgb_pixel& operator[](int j);
 
 	int width;
 	rgb_pixel* data;
 };
 
-struct rgb_image
+template<INVALID_ACCESS_POLICY policy>
+struct rgb_image_
 {
-	rgb_image();
-	rgb_image(int w, int h, bool allocate = true);
-	~rgb_image();
+	rgb_image_();
+	rgb_image_(int w, int h, bool allocate = true);
+	~rgb_image_();
 	
 	void allocate();
 
-	rgb_line operator[](int i);
+	const rgb_line_<policy> operator[](int i) const;
+	rgb_line_<policy> operator[](int i);
+
+	const rgb_pixel& operator()(int pixel) const;
 	rgb_pixel& operator()(int pixel);
+
+	operator bool() const;
 
 	int width;
 	int height;
@@ -45,3 +57,75 @@ struct rgb_image
 
 };
 
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_image_<policy>::rgb_image_()
+	:width(0), height(0), data(nullptr)
+{
+
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_image_<policy>::rgb_image_(int w, int h, bool allocate_in_ctor /*= true*/)
+	:width(w), height(h), data(nullptr)
+{
+	if (allocate_in_ctor) allocate();
+}
+
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_image_<policy>::~rgb_image_()
+{
+	if (data) free(data);
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_line_<policy>::rgb_line_()
+	:width(0), data(nullptr)
+{
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_line_<policy>::rgb_line_(int w, rgb_pixel* d)
+	:width(w), data(d)
+{
+}
+
+template<INVALID_ACCESS_POLICY policy>
+void rgb_image_<policy>::allocate()
+{
+	if (!width || !height) return;
+	data = static_cast<rgb_pixel*>(calloc(width * height, sizeof(rgb_pixel)));
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_image_<policy>::operator bool() const
+{
+	return (data && width != 0 && height != 0);
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_pixel& rgb_line_<policy>::operator[](int j)
+{
+	//thank you C++!
+	return const_cast<rgb_pixel&>(const_cast<const rgb_line_<policy>&>(*this)[j]);
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_line_<policy> rgb_image_<policy>::operator[](int i)
+{
+	//thank you C++!
+	return const_cast<rgb_line_<policy>&>(const_cast<const rgb_image_<policy>&>(*this)[i]);
+}
+
+template<INVALID_ACCESS_POLICY policy>
+rgb_pixel& rgb_image_<policy>::operator()(int j)
+{
+	//thank you C++!
+	return const_cast<rgb_pixel&>(const_cast<const rgb_image_<policy>&>(*this)(j));
+}
+
+
+
+using rgb_line = rgb_line_<DEFAULT>;
+using rgb_image = rgb_image_<DEFAULT>;
