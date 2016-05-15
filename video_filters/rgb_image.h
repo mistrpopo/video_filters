@@ -38,6 +38,11 @@ struct rgb_image_
 {
 	rgb_image_();
 	rgb_image_(int w, int h, bool allocate = true);
+	//transfer ownership only. no copy constructor, no shared ownership.
+	rgb_image_(rgb_image_&& other);
+	rgb_image_& operator=(rgb_image_&& other);
+	rgb_image_(const rgb_image_& other) = delete;
+	rgb_image_& operator=(const rgb_image_& other) = delete;
 	~rgb_image_();
 	
 	void allocate();
@@ -47,6 +52,8 @@ struct rgb_image_
 
 	const rgb_pixel& operator()(int pixel) const;
 	rgb_pixel& operator()(int pixel);
+
+	size_t size() const;
 
 	operator bool() const;
 
@@ -72,6 +79,22 @@ rgb_image_<policy>::rgb_image_(int w, int h, bool allocate_in_ctor /*= true*/)
 	if (allocate_in_ctor) allocate();
 }
 
+template<INVALID_ACCESS_POLICY policy>
+inline rgb_image_<policy>::rgb_image_(rgb_image_ && other)
+	:width(other.width), height(other.height), data(other.data)
+{
+	other.data = nullptr;
+}
+
+template<INVALID_ACCESS_POLICY policy>
+inline rgb_image_<policy>& rgb_image_<policy>::operator=(rgb_image_ && other)
+{
+	width = other.width;
+	height = other.height;
+	data = other.data;
+	other.data = nullptr;
+	return *this;
+}
 
 template<INVALID_ACCESS_POLICY policy>
 rgb_image_<policy>::~rgb_image_()
@@ -125,6 +148,11 @@ rgb_pixel& rgb_image_<policy>::operator()(int j)
 	return const_cast<rgb_pixel&>(const_cast<const rgb_image_<policy>&>(*this)(j));
 }
 
+template<INVALID_ACCESS_POLICY policy>
+inline size_t rgb_image_<policy>::size() const
+{
+	return width*height;
+}
 
 
 using rgb_line = rgb_line_<DEFAULT>;

@@ -39,24 +39,28 @@ bool read_ppm(const std::string & filename, rgb_image& result)
 		//re-open the file in binary mode
 		std::streampos data_offset = in.tellg();
 		in = ifstream(filename, std::ios::in | std::ios::binary);
-		
 		in.seekg(data_offset);
 	}
-
-	if (ppm_version == "P1" || ppm_version == "P4")
+	bool pbm = (ppm_version == "P1" || ppm_version == "P4");
+	bool pgm = (ppm_version == "P2" || ppm_version == "P5");
+	bool ppm = (ppm_version == "P3" || ppm_version == "P6");
+	if (pbm)
 	{
 		return read_ppm_pbm(in, result, !is_binary);
 	}
-	else if (ppm_version == "P2" || ppm_version == "P5")
+	else if (pgm)
 	{
 		return read_ppm_pgm(in, result, !is_binary);
 	}
-	else if (ppm_version == "P3" || ppm_version == "P6")
+	else if (ppm)
 	{
 		return read_ppm_ppm(in, result, !is_binary);
 	}
-	CERROR("Unrecognized version " << ppm_version);
-	return false;
+	else
+	{
+		CERROR("Unrecognized version " << ppm_version);
+		return false;
+	}
 }
 
 bool read_ppm_pbm(ifstream& in, rgb_image& result, bool ascii)
@@ -67,7 +71,7 @@ bool read_ppm_pbm(ifstream& in, rgb_image& result, bool ascii)
 		int32_t in_value = 0;
 		while (in >> in_value)
 		{
-			//the explicit constructor is to help msvc with C++ features less than 10 y/o
+			// The standard says that braced-init-list can not be used in a ternary operator. Learned something today.
 			result(pixel) = (in_value == 0) ? rgb_pixel{ 255, 255, 255 } : rgb_pixel{ 0, 0, 0 };
 			++pixel;
 		}
@@ -105,7 +109,7 @@ bool read_ppm_pgm(ifstream& in, rgb_image& result, bool ascii)
 		uint8_t in_byte = 0;
 		while (in.read((char*)&in_byte, 1))
 		{
-			result(pixel) = { in_value, in_value, in_value };
+			result(pixel) = { in_byte, in_byte, in_byte };
 			++pixel;
 		}
 	}

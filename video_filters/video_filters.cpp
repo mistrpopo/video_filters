@@ -1,6 +1,7 @@
 #include <iostream>
 #include "rgb_image.h"
 #include "read_ppm.h"
+#include "stegano.h"
 
 static const int test_width = 16;
 static const int test_height = 9;
@@ -45,6 +46,8 @@ void test_2()
 {
 	rgb_image ppmtest;
 	read_ppm("..\\..\\image_samples\\marbles.pbm", ppmtest);
+	rgb_image tgt;
+	steganography_encode(ppmtest, "hello world", tgt);
 	for (int i = 0; i < ppmtest.height; ++i)
 	{
 		for (int j = 0; j < ppmtest.width; j++)

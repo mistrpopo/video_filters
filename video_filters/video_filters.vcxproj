@@ -144,11 +144,13 @@
   <ItemGroup>
     <ClCompile Include="read_ppm.cpp" />
     <ClCompile Include="rgb_image.cpp" />
+    <ClCompile Include="stegano.cpp" />
     <ClCompile Include="video_filters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="read_ppm.h" />
     <ClInclude Include="rgb_image.h" />
+    <ClInclude Include="stegano.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

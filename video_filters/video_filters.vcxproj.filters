@@ -18,10 +18,13 @@
     <ClCompile Include="video_filters.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="read_ppm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="rgb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="read_ppm.cpp">
+    <ClCompile Include="stegano.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -30,6 +33,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="read_ppm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stegano.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
