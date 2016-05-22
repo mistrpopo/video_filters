@@ -35,7 +35,7 @@ void test_1()
 	{
 		for (int j = 0; j < test_width; j++)
 		{
-			std::cout << test[i][j].r << "," << test[i][j].g << "," << test[i][j].b << ";";
+			std::cout << test[i][j];
 		}
 		std::cout << std::endl;
 	}
@@ -48,12 +48,7 @@ void test_2()
 	read_ppm("..\\..\\image_samples\\marbles.pbm", ppmtest);
 	rgb_image tgt;
 	steganography_encode(ppmtest, "hello world", tgt);
-	for (int i = 0; i < ppmtest.height; ++i)
-	{
-		for (int j = 0; j < ppmtest.width; j++)
-		{
-			std::cout << ppmtest[i][j].r << "," << ppmtest[i][j].g << "," << ppmtest[i][j].b << ";";
-		}
-		std::cout << std::endl;
-	}
+	std::string retrieve;
+	steganography_decode(tgt, retrieve);
+	std::cout << retrieve;
 }

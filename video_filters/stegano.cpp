@@ -14,18 +14,15 @@ static const int STEGA_HEADER_SNR = 2;
 //header 'magic' (can be used for position calibration, or version upgrade)
 static const char HEADER_MAGIC = '\xee';
 
-std::string get_message_header(const uint32_t &message_size);
 bool write_string(const uint8_t* source_data, const std::string & string, uint8_t*& target_data, const int snr);
+bool read_string(const uint8_t*& source_data, std::string & string, const int snr, const uint32_t size);
 
-inline size_t encoded_size(const size_t size, const int snr)
-{
-	return static_cast<size_t>(ceil(static_cast<double>(size * 8) / snr));
-}
+std::string get_message_header(const uint32_t &message_size);
+uint32_t get_message_size(const std::string &message_header);
 
-inline uint8_t bit_mask(const size_t how_many)
-{
-	return ((1 << how_many) - 1);
-}
+inline int get_min_snr(const size_t carrier_size, const uint32_t message_size) { return 3; } //TODO
+inline size_t encoded_size(const size_t size, const int snr) { return static_cast<size_t>(ceil(static_cast<double>(size * 8) / snr)); }
+inline uint8_t bit_mask(const size_t how_many) { return ((1 << how_many) - 1); }
 
 bool steganography_encode(const rgb_image & source, const std::string & message, rgb_image & target)
 {
@@ -49,20 +46,21 @@ bool steganography_encode(const rgb_image & source, const std::string & message,
 	if (!write_string(source_data, header, target_data, STEGA_HEADER_SNR)) return false;
 	//todo calculate the snr as function of message size and image size 
 	//the same calculation should be done at decode phase (message size can be retrieved in decode because the header has fixed parameters)
-	int snr = STEGA_HEADER_SNR;
+	int snr = get_min_snr(source.size(), message_size);
 	if (!write_string(source_data, message, target_data, snr)) return false;
 	return true;
 }
 
-std::string get_message_header(const uint32_t &message_size)
+bool steganography_decode(const rgb_image & source, std::string & message)
 {
-	std::string header(STEGA_HEADER_SIZE,'\0');
-	header[0] = HEADER_MAGIC;
-	header[1] = (message_size >> 24) & 0xFF;
-	header[2] = (message_size >> 16) & 0xFF;
-	header[3] = (message_size >> 8) & 0xFF;
-	header[4] = (message_size >> 0) & 0xFF;
-	return header;
+	const size_t carrier_data_size = source.size() * 3;
+	const uint8_t* source_data = reinterpret_cast<const uint8_t*>(source.data);
+	std::string header;
+	if (!read_string(source_data, header, STEGA_HEADER_SNR, STEGA_HEADER_SIZE)) return false;
+	uint32_t message_size = get_message_size(header);
+	int snr = get_min_snr(source.size(), message_size);
+	if (!read_string(source_data, message, snr, message_size)) return false;
+	return true;
 }
 
 bool write_string(const uint8_t* source_data, const std::string & string, uint8_t*& target_data, const int snr)
@@ -79,26 +77,80 @@ bool write_string(const uint8_t* source_data, const std::string & string, uint8_
 		{
 			const size_t string_byte_position = total_bits_encoded / 8;
 			const size_t string_bit_position  = total_bits_encoded % 8;
-			uint8_t string_data = string[string_byte_position];
 			const size_t bits_from_this_position = std::min<size_t>(8 - string_bit_position, snr - bits_encoded);
 
-			//todo i did all this mess to make encoding work with 3 bits-per-byte, but there's still something wrong here 
-			//need to zero out all unrelated bits. 
-			//e.g. string_data has 2 bits left, but taget_byte has 3 => need to shift one-up, and make a bitmask like 0000 0110 to keep only 2bytes
+			char string_data = string[string_byte_position];
 			string_data >>= (8 - string_bit_position - bits_from_this_position);
 			string_data &= bit_mask(bits_from_this_position);
+			string_data <<= (snr - bits_from_this_position - bits_encoded);
 			target_byte |= string_data;
 
 			bits_to_encode -= bits_from_this_position;
 			bits_encoded += bits_from_this_position;
 			total_bits_encoded += bits_from_this_position;
 		}
-		(*target_data++) = target_byte;
+		target_data[i] = target_byte;
 	}
+	target_data += all_bytes;
 	return true;
 }
 
-bool steganography_decode(const rgb_image & source, std::string & message)
+bool read_string(const uint8_t*& source_data, std::string & string, const int snr, const uint32_t size)
 {
-	return false;
+	string.resize(size,'\0');
+	size_t all_bytes = encoded_size(size, snr);
+	size_t total_bits_decoded = 0;
+
+	for (size_t i = 0; i < size; ++i)
+	{
+		char target_char = '\0';
+		size_t bits_to_decode = 8;
+		size_t bits_decoded = 0;
+		while (bits_to_decode)
+		{
+			const size_t buffer_byte_position = total_bits_decoded / snr;
+			const size_t buffer_bit_position  = total_bits_decoded % snr;
+			const size_t bits_from_this_position = std::min<size_t>(snr - buffer_bit_position, 8 - bits_decoded);
+
+			uint8_t buffer_data = source_data[buffer_byte_position];
+			buffer_data >>= (snr - buffer_bit_position - bits_from_this_position);
+			buffer_data &= bit_mask(bits_from_this_position);
+			buffer_data <<= (8 - bits_from_this_position - bits_decoded);
+			target_char |= buffer_data;
+
+			bits_to_decode -= bits_from_this_position;
+			bits_decoded += bits_from_this_position;
+			total_bits_decoded += bits_from_this_position;
+		}
+		string[i] = target_char;
+	}
+	source_data += all_bytes;
+	return true;
 }
+
+std::string get_message_header(const uint32_t &message_size)
+{
+	std::string header(STEGA_HEADER_SIZE, '\0');
+	header[0] = HEADER_MAGIC;
+	header[1] = (message_size >> 24) & 0xFF;
+	header[2] = (message_size >> 16) & 0xFF;
+	header[3] = (message_size >> 8 ) & 0xFF;
+	header[4] = (message_size >> 0 ) & 0xFF;
+	return header;
+}
+
+uint32_t get_message_size(const std::string & message_header)
+{
+	if (message_header[0] != HEADER_MAGIC)
+	{
+		CERROR("Wrong header magic - " << std::hex << message_header[0] << " - either the version is invalid or the data is corrupted.");
+		return 0;
+	}
+	uint32_t size = 0;
+	size |= message_header[1]<< 24;
+	size |= message_header[2]<< 16;
+	size |= message_header[3]<< 8 ;
+	size |= message_header[4]<< 0 ;
+	return size;
+}
+

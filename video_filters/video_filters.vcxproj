@@ -143,7 +143,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="read_ppm.cpp" />
-    <ClCompile Include="rgb_image.cpp" />
     <ClCompile Include="stegano.cpp" />
     <ClCompile Include="video_filters.cpp" />
   </ItemGroup>

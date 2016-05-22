@@ -68,7 +68,7 @@ bool read_ppm_pbm(ifstream& in, rgb_image& result, bool ascii)
 	int pixel = 0;
 	if (ascii)
 	{
-		int32_t in_value = 0;
+		pixel_t in_value = 0;
 		while (in >> in_value)
 		{
 			// The standard says that braced-init-list can not be used in a ternary operator. Learned something today.
@@ -78,7 +78,7 @@ bool read_ppm_pbm(ifstream& in, rgb_image& result, bool ascii)
 	}
 	else
 	{
-		uint8_t in_byte = 0;
+		pixel_t in_byte = 0;
 		while (in.read((char*)&in_byte, 1))
 		{
 			for (int i = 0; i < 8; ++i)
@@ -94,7 +94,7 @@ bool read_ppm_pbm(ifstream& in, rgb_image& result, bool ascii)
 
 bool read_ppm_pgm(ifstream& in, rgb_image& result, bool ascii)
 {
-	int32_t in_value = 0;
+	pixel_t in_value = 0;
 	int pixel = 0;
 	if (ascii)
 	{
@@ -106,7 +106,7 @@ bool read_ppm_pgm(ifstream& in, rgb_image& result, bool ascii)
 	}
 	else
 	{
-		uint8_t in_byte = 0;
+		pixel_t in_byte = 0;
 		while (in.read((char*)&in_byte, 1))
 		{
 			result(pixel) = { in_byte, in_byte, in_byte };
@@ -118,7 +118,7 @@ bool read_ppm_pgm(ifstream& in, rgb_image& result, bool ascii)
 
 bool read_ppm_ppm(ifstream& in, rgb_image& result, bool ascii)
 {
-	int32_t in_value_r = 0, in_value_g = 0, in_value_b = 0;
+	pixel_t in_value_r = 0, in_value_g = 0, in_value_b = 0;
 	int pixel = 0;
 	if (ascii)
 	{
@@ -130,7 +130,7 @@ bool read_ppm_ppm(ifstream& in, rgb_image& result, bool ascii)
 	}
 	else
 	{
-		uint8_t in_bytes[3];
+		pixel_t in_bytes[3];
 		while (in.read((char*)in_bytes, 3))
 		{
 			result(pixel) = { in_bytes[0], in_bytes[1], in_bytes[2] };
